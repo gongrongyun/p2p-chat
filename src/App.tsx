@@ -23,7 +23,7 @@ function App() {
 
   const handleReceiveKey = async () => {
     const key = await chat.receiveKey(data.recv);
-    if (key) setData({ ...data, recv: key });
+    if (key) setData({ ...data, send: key });
   };
   useEffect(() => {
     chat.onConnected = () => setOpen(false);
