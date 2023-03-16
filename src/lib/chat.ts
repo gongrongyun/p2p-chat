@@ -4,50 +4,52 @@ export default class Chat {
   private dataChannel: RTCDataChannel | null = null;
   private isInitiator: boolean = false;
 
-  public onReceive?: (message: string) => void
-  public onConnected?: () => void
+  public onReceive?: (message: string) => void;
+  public onConnected?: () => void;
+  public onError?: (e: Error | Event) => void;
 
   constructor() {
     this.peer = new RTCPeerConnection();
-    this.peer.addEventListener('connectionstatechange', this.handleConnectStateChange.bind(this))
-    this.peer.addEventListener('iceconnectionstatechange', this.handleIceStateChange.bind(this))
-    this.peer.addEventListener('icecandidate', this.handleIceCandidate.bind(this));
-    (window as any).peer = this.peer;
+    this.peer.addEventListener(
+      "connectionstatechange",
+      this.handleConnectStateChange.bind(this)
+    );
+    this.peer.addEventListener(
+      "iceconnectionstatechange",
+      this.handleIceStateChange.bind(this)
+    );
+    this.peer.addEventListener(
+      "icecandidate",
+      this.handleIceCandidate.bind(this)
+    );
+    this.peer.addEventListener("icecandidateerror", (e) => {
+      this.onError?.(e);
+    });
   }
 
   public async createKey() {
-    return new Promise<string>(async(resolve) => {
-      const offer = await this.peer.createOffer()
-      await this.peer.setLocalDescription(offer)
-      this.setupDataChannel(this.peer.createDataChannel('chat'))
-      this.isInitiator = true
-      this.peer.addEventListener('icecandidate', () => {
-        if (this.peer.iceGatheringState === 'complete') {
-          resolve(JSON.stringify({ offer, ices: this.ices }))
-        }
-      })
-    })
+    this.isInitiator = true;
+    const offer = await this.peer.createOffer();
+    await this.peer.setLocalDescription(offer);
+    this.setupDataChannel(this.peer.createDataChannel("chat"));
+    await this.gatherIceCandidate();
+    return JSON.stringify({ sdp: offer, ices: this.ices });
   }
 
   public async receiveKey(key: string) {
-    const { ices, offer } = JSON.parse(key);
-    await this.peer.setRemoteDescription(offer)
+    const { ices, sdp } = JSON.parse(key);
+    await this.peer.setRemoteDescription(sdp);
     for (const ice of ices) {
       await this.peer.addIceCandidate(ice);
     }
     if (!this.isInitiator) {
-      const offer = await this.peer.createAnswer()
-      await this.peer.setLocalDescription(offer);
-      this.peer.addEventListener('datachannel', (e: RTCDataChannelEvent) => {
-        this.setupDataChannel(e.channel)
-      })
-      return new Promise<string>((resolve, reject) => {
-        this.peer.addEventListener('icegatheringstatechange', () => {
-          if (this.peer.iceGatheringState === 'complete') {
-            resolve(JSON.stringify({ offer, ices: this.ices }))
-          }
-        })
-      })
+      const answer = await this.peer.createAnswer();
+      await this.peer.setLocalDescription(answer);
+      this.peer.addEventListener("datachannel", (e: RTCDataChannelEvent) => {
+        this.setupDataChannel(e.channel);
+      });
+      await this.gatherIceCandidate();
+      return JSON.stringify({ sdp: answer, ices: this.ices });
     }
   }
 
@@ -55,31 +57,49 @@ export default class Chat {
     this.dataChannel?.send(message);
   }
 
+  public destroy() {
+    this.ices = [];
+    this.dataChannel?.close();
+    this.peer.close();
+  }
+
   private setupDataChannel(channel: RTCDataChannel) {
-    this.dataChannel = channel
-    this.dataChannel.addEventListener('open', () => console.log('open'))
-    this.dataChannel.addEventListener('message', (e) => this.onReceive?.(e.data));
-    (window as any).channel = channel
+    this.dataChannel = channel;
+    this.dataChannel.addEventListener("open", () => this.onConnected?.());
+    this.dataChannel.addEventListener("message", (e) =>
+      this.onReceive?.(e.data)
+    );
+    this.dataChannel.addEventListener("error", (e) => {
+      this.onError?.(e);
+    });
   }
 
   private handleConnectStateChange(e: Event) {
-    if (this.peer.connectionState === 'connected') {
-      this.onConnected?.()
-    }
-    console.log(this.peer.connectionState)
+    console.log(this.peer.connectionState);
   }
 
   private handleIceStateChange(e: Event) {
-    console.log(this.peer.iceConnectionState)
+    console.log(this.peer.iceConnectionState);
   }
 
   private handleIceCandidate(e: RTCPeerConnectionIceEvent) {
-    if (this.peer.iceGatheringState === 'complete') {
-
-    } else {
-      if (e.candidate !== null) {
-        this.ices.push(e.candidate)
-      }
+    if (e.candidate !== null) {
+      this.ices.push(e.candidate);
     }
+  }
+
+  private async gatherIceCandidate() {
+    return new Promise<void>((resolve) => {
+      if (this.peer.iceGatheringState === "complete") {
+        resolve();
+      } else {
+        this.peer.addEventListener("icegatheringstatechange", () => {
+          // Safari doesn't have 'complete' state
+          if (this.peer.iceGatheringState === "complete") {
+            resolve();
+          }
+        });
+      }
+    });
   }
 }
