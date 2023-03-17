@@ -100,7 +100,7 @@ export default function ChatBoard({ chat, ready }: IProps) {
             }
             idRef.current = window.setTimeout(() => {
               chat.send(JSON.stringify({ type: 'event', val: 'typed' }))
-            })
+            }, 1000)
           }
         }
         onInputBlur={() => {
