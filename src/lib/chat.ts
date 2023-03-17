@@ -1,3 +1,5 @@
+import { decrypt, encrypt } from "./utils";
+
 export default class Chat {
   private peer: RTCPeerConnection;
   private ices: RTCIceCandidate[] = [];
@@ -33,11 +35,11 @@ export default class Chat {
     await this.peer.setLocalDescription(offer);
     this.setupDataChannel(this.peer.createDataChannel("chat"));
     await this.gatherIceCandidate();
-    return JSON.stringify({ sdp: offer, ices: this.ices });
+    return encrypt({ sdp: offer, ices: this.ices })
   }
 
   public async receiveKey(key: string) {
-    const { ices, sdp } = JSON.parse(key);
+    const { ices, sdp } = decrypt(key);
     await this.peer.setRemoteDescription(sdp);
     for (const ice of ices) {
       await this.peer.addIceCandidate(ice);
@@ -49,7 +51,7 @@ export default class Chat {
         this.setupDataChannel(e.channel);
       });
       await this.gatherIceCandidate();
-      return JSON.stringify({ sdp: answer, ices: this.ices });
+      return encrypt({ sdp: answer, ices: this.ices });
     }
   }
 
@@ -94,6 +96,7 @@ export default class Chat {
         resolve();
       } else {
         this.peer.addEventListener("icegatheringstatechange", () => {
+          console.log(this.peer.iceGatheringState)
           // Safari doesn't have 'complete' state
           if (this.peer.iceGatheringState === "complete") {
             resolve();

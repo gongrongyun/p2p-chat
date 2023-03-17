@@ -1,9 +1,9 @@
 import "./App.css";
 import "@chatui/core/es/styles/index.less";
 import "@chatui/core/dist/index.css";
-import Setting from "./components/Setting";
+// import Setting from "./components/Setting";
 import ChatBoard from "./components/ChatBoard";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Chat } from "./lib";
 import { Modal, Input, Typography, Space, Button } from "antd";
 
@@ -12,7 +12,7 @@ const chat = new Chat();
 function App() {
   const [open, setOpen] = useState(true);
   const [data, setData] = useState({
-    send: "",
+    send: "点击 ‘生成’, 并把生成的 key 发送给你的好友，或者在文本框内填入好友的 key，并点击 ‘连接’，将生成 key 发送给好友 ",
     recv: "",
   });
 
@@ -22,6 +22,7 @@ function App() {
   };
 
   const handleReceiveKey = async () => {
+    console.log(typeof data.recv, data.recv)
     const key = await chat.receiveKey(data.recv);
     if (key) setData({ ...data, send: key });
   };
@@ -33,7 +34,7 @@ function App() {
     <div className="App">
       <Modal
         open={open}
-        title="Title"
+        title="交换 Key"
         closable={false}
         maskClosable={false}
         footer={
@@ -51,12 +52,12 @@ function App() {
           value={data.recv}
           onChange={(e) => setData({ ...data, recv: e.target.value })}
         />
-        <Typography.Text copyable={{ format: "text/plain" }}>
+        <Typography.Paragraph ellipsis={{ rows: 4 }} copyable={{ format: "text/plain" }}>
           {data.send}
-        </Typography.Text>
+        </Typography.Paragraph>
       </Modal>
       {/* <Setting /> */}
-      <ChatBoard chat={chat} />
+      <ChatBoard chat={chat} ready={open} />
     </div>
   );
 }

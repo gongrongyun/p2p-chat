@@ -43,6 +43,8 @@
     ]
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
     "@types/lodash.debounce": "^4.0.7"
-  }
+  },
+  "homepage": "p2p-chat/"
 }
