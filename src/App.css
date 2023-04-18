@@ -3,3 +3,23 @@
   height: 100vh;
   width: 100vw;
 }
+
+video {
+  position: fixed;
+  right: 50px;
+  width: 300px;
+  height: 200px;
+  background-color: black;
+}
+
+.hidden {
+  display: none;
+}
+
+#remote {
+  bottom: 280px;
+}
+
+#local {
+  bottom: 60px;
+}

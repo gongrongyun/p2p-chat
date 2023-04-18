@@ -5,6 +5,7 @@
 
 export const encrypt = (data: any) => {
   return btoa(JSON.stringify(data))
+  // return JSON.stringify(data)
   // const word = btoa(JSON.stringify(data))
   // let srcs = CryptoJS.enc.Utf8.parse(word)
   // let encrypted = CryptoJS.AES.encrypt(srcs, CryptoJS.enc.Utf8.parse(KEY), { 
@@ -17,6 +18,7 @@ export const encrypt = (data: any) => {
 
 export const decrypt = (word: string) => {
   return JSON.parse(atob(word))
+  // return JSON.parse(word)
   // const result = CryptoJS.AES.decrypt(word, CryptoJS.enc.Utf8.parse(KEY), {
   //   iv: CryptoJS.enc.Utf8.parse(IV),
   //   mode: CryptoJS.mode.CBC,
